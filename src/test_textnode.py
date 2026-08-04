@@ -5,6 +5,8 @@ from textnode import TextNode, TextType
 from textnode import extract_markdown_images
 from textnode import extract_markdown_links
 from textnode import split_nodes_delimiter
+from textnode import split_nodes_image
+from textnode import split_nodes_link
 from textnode import text_node_to_html_node
 
 
@@ -198,6 +200,69 @@ class TestTextNode(unittest.TestCase):
         self.assertListEqual(
             [("link", "https://example.com")],
             matches,
+        )
+
+    def test_split_images(self):
+        node = TextNode(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png) and another ![second image](https://i.imgur.com/3elNhQu.png)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+                TextNode(" and another ", TextType.TEXT),
+                TextNode("second image", TextType.IMAGE, "https://i.imgur.com/3elNhQu.png"),
+            ],
+            new_nodes,
+        )
+
+    def test_split_images_no_matches_returns_original(self):
+        node = TextNode("This has no images", TextType.TEXT)
+        self.assertListEqual([node], split_nodes_image([node]))
+
+    def test_split_images_preserves_non_text_nodes(self):
+        old_nodes = [
+            TextNode("prefix ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+            TextNode(" suffix", TextType.TEXT),
+        ]
+        self.assertListEqual(old_nodes, split_nodes_image(old_nodes))
+
+    def test_split_links(self):
+        node = TextNode(
+            "This is text with a link [to boot dev](https://www.boot.dev) and [to youtube](https://www.youtube.com/@bootdotdev)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with a link ", TextType.TEXT),
+                TextNode("to boot dev", TextType.LINK, "https://www.boot.dev"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("to youtube", TextType.LINK, "https://www.youtube.com/@bootdotdev"),
+            ],
+            new_nodes,
+        )
+
+    def test_split_links_no_matches_returns_original(self):
+        node = TextNode("This has no links", TextType.TEXT)
+        self.assertListEqual([node], split_nodes_link([node]))
+
+    def test_split_links_preserves_non_text_nodes(self):
+        old_nodes = [
+            TextNode("prefix ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" suffix", TextType.TEXT),
+        ]
+        self.assertListEqual(old_nodes, split_nodes_link(old_nodes))
+
+    def test_split_links_trims_empty_text_segments(self):
+        node = TextNode("[link](https://example.com)", TextType.TEXT)
+        self.assertListEqual(
+            [TextNode("link", TextType.LINK, "https://example.com")],
+            split_nodes_link([node]),
         )
 
 

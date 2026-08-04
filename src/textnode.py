@@ -84,3 +84,59 @@ def extract_markdown_images(text):
 
 def extract_markdown_links(text):
     return re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
+
+
+def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
+    new_nodes = []
+
+    for old_node in old_nodes:
+        if old_node.text_type != TextType.TEXT:
+            new_nodes.append(old_node)
+            continue
+
+        matches = extract_markdown_images(old_node.text)
+        if not matches:
+            new_nodes.append(old_node)
+            continue
+
+        remaining_text = old_node.text
+        for alt_text, url in matches:
+            markdown_image = f"![{alt_text}]({url})"
+            before, after = remaining_text.split(markdown_image, 1)
+            if before:
+                new_nodes.append(TextNode(before, TextType.TEXT))
+            new_nodes.append(TextNode(alt_text, TextType.IMAGE, url))
+            remaining_text = after
+
+        if remaining_text:
+            new_nodes.append(TextNode(remaining_text, TextType.TEXT))
+
+    return new_nodes
+
+
+def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
+    new_nodes = []
+
+    for old_node in old_nodes:
+        if old_node.text_type != TextType.TEXT:
+            new_nodes.append(old_node)
+            continue
+
+        matches = extract_markdown_links(old_node.text)
+        if not matches:
+            new_nodes.append(old_node)
+            continue
+
+        remaining_text = old_node.text
+        for anchor_text, url in matches:
+            markdown_link = f"[{anchor_text}]({url})"
+            before, after = remaining_text.split(markdown_link, 1)
+            if before:
+                new_nodes.append(TextNode(before, TextType.TEXT))
+            new_nodes.append(TextNode(anchor_text, TextType.LINK, url))
+            remaining_text = after
+
+        if remaining_text:
+            new_nodes.append(TextNode(remaining_text, TextType.TEXT))
+
+    return new_nodes
