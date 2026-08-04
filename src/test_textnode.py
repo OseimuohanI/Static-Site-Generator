@@ -2,6 +2,8 @@ import unittest
 
 from leafnode import LeafNode
 from textnode import TextNode, TextType
+from textnode import extract_markdown_images
+from textnode import extract_markdown_links
 from textnode import split_nodes_delimiter
 from textnode import text_node_to_html_node
 
@@ -146,6 +148,57 @@ class TestTextNode(unittest.TestCase):
         node = TextNode("This is **broken text", TextType.TEXT)
         with self.assertRaises(Exception):
             split_nodes_delimiter([node], "**", TextType.BOLD)
+
+    def test_extract_markdown_images(self):
+        matches = extract_markdown_images(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png)"
+        )
+        self.assertListEqual(
+            [("image", "https://i.imgur.com/zjjcJKZ.png")],
+            matches,
+        )
+
+    def test_extract_markdown_images_multiple(self):
+        matches = extract_markdown_images(
+            "![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        )
+        self.assertListEqual(
+            [
+                ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
+                ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
+            ],
+            matches,
+        )
+
+    def test_extract_markdown_links(self):
+        matches = extract_markdown_links(
+            "This is text with a link [to boot dev](https://www.boot.dev)"
+        )
+        self.assertListEqual(
+            [("to boot dev", "https://www.boot.dev")],
+            matches,
+        )
+
+    def test_extract_markdown_links_multiple(self):
+        matches = extract_markdown_links(
+            "This has [one](https://one.example) and [two](https://two.example)"
+        )
+        self.assertListEqual(
+            [
+                ("one", "https://one.example"),
+                ("two", "https://two.example"),
+            ],
+            matches,
+        )
+
+    def test_extract_markdown_links_ignores_images(self):
+        matches = extract_markdown_links(
+            "This has an ![image](https://example.com/image.png) and [link](https://example.com)"
+        )
+        self.assertListEqual(
+            [("link", "https://example.com")],
+            matches,
+        )
 
 
 if __name__ == "__main__":
