@@ -4,6 +4,8 @@ from leafnode import LeafNode
 from textnode import TextNode, TextType
 from textnode import extract_markdown_images
 from textnode import extract_markdown_links
+from textnode import block_to_block_type
+from textnode import BlockType
 from textnode import split_nodes_delimiter
 from textnode import split_nodes_image
 from textnode import split_nodes_link
@@ -353,6 +355,55 @@ Second block
                 "First block",
                 "Second block",
             ],
+        )
+
+    def test_block_to_block_type_heading(self):
+        self.assertEqual(block_to_block_type("# Heading"), BlockType.HEADING)
+        self.assertEqual(block_to_block_type("###### Heading"), BlockType.HEADING)
+
+    def test_block_to_block_type_code(self):
+        block = """```
+code line 1
+code line 2
+```"""
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+
+    def test_block_to_block_type_quote(self):
+        block = """> quote line 1
+> quote line 2"""
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+
+    def test_block_to_block_type_unordered_list(self):
+        block = """- item 1
+- item 2
+- item 3"""
+        self.assertEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list(self):
+        block = """1. item 1
+2. item 2
+3. item 3"""
+        self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_paragraph(self):
+        self.assertEqual(
+            block_to_block_type("This is just a paragraph."),
+            BlockType.PARAGRAPH,
+        )
+
+    def test_block_to_block_type_near_miss_heading_is_paragraph(self):
+        self.assertEqual(block_to_block_type("#Heading"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_near_miss_unordered_list_is_paragraph(self):
+        self.assertEqual(
+            block_to_block_type("-item 1\n-item 2"),
+            BlockType.PARAGRAPH,
+        )
+
+    def test_block_to_block_type_wrong_ordered_list_is_paragraph(self):
+        self.assertEqual(
+            block_to_block_type("2. item 1\n3. item 2"),
+            BlockType.PARAGRAPH,
         )
 
 
