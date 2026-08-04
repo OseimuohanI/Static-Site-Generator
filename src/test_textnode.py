@@ -8,6 +8,7 @@ from textnode import split_nodes_delimiter
 from textnode import split_nodes_image
 from textnode import split_nodes_link
 from textnode import text_node_to_html_node
+from textnode import text_to_textnodes
 
 
 class TestTextNode(unittest.TestCase):
@@ -263,6 +264,50 @@ class TestTextNode(unittest.TestCase):
         self.assertListEqual(
             [TextNode("link", TextType.LINK, "https://example.com")],
             split_nodes_link([node]),
+        )
+
+    def test_text_to_textnodes_full_example(self):
+        text = (
+            "This is **text** with an *italic* word and a `code block` and an "
+            "![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a "
+            "[link](https://boot.dev)"
+        )
+        self.assertListEqual(
+            [
+                TextNode("This is ", TextType.TEXT),
+                TextNode("text", TextType.BOLD),
+                TextNode(" with an ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(" word and a ", TextType.TEXT),
+                TextNode("code block", TextType.CODE),
+                TextNode(" and an ", TextType.TEXT),
+                TextNode(
+                    "obi wan image",
+                    TextType.IMAGE,
+                    "https://i.imgur.com/fJRm4Vk.jpeg",
+                ),
+                TextNode(" and a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://boot.dev"),
+            ],
+            text_to_textnodes(text),
+        )
+
+    def test_text_to_textnodes_no_markdown(self):
+        text = "Just plain text"
+        self.assertListEqual(
+            [TextNode("Just plain text", TextType.TEXT)],
+            text_to_textnodes(text),
+        )
+
+    def test_text_to_textnodes_code_blocks_are_preserved(self):
+        text = "This has `**not bold**` inside code"
+        self.assertListEqual(
+            [
+                TextNode("This has ", TextType.TEXT),
+                TextNode("**not bold**", TextType.CODE),
+                TextNode(" inside code", TextType.TEXT),
+            ],
+            text_to_textnodes(text),
         )
 
 
