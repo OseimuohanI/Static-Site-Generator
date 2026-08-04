@@ -2,6 +2,7 @@ import unittest
 
 from leafnode import LeafNode
 from textnode import TextNode, TextType
+from textnode import split_nodes_delimiter
 from textnode import text_node_to_html_node
 
 
@@ -76,6 +77,75 @@ class TestTextNode(unittest.TestCase):
         node = TextNode("Unsupported", "not-a-text-type")
         with self.assertRaises(Exception):
             text_node_to_html_node(node)
+
+    def test_split_nodes_delimiter_code(self):
+        node = TextNode("This is text with a `code block` word", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "`", TextType.CODE)
+        self.assertEqual(
+            new_nodes,
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("code block", TextType.CODE),
+                TextNode(" word", TextType.TEXT),
+            ],
+        )
+
+    def test_split_nodes_delimiter_bold(self):
+        node = TextNode("This is **bolded** text", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertEqual(
+            new_nodes,
+            [
+                TextNode("This is ", TextType.TEXT),
+                TextNode("bolded", TextType.BOLD),
+                TextNode(" text", TextType.TEXT),
+            ],
+        )
+
+    def test_split_nodes_delimiter_italic(self):
+        node = TextNode("This is _italic_ text", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "_", TextType.ITALIC)
+        self.assertEqual(
+            new_nodes,
+            [
+                TextNode("This is ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(" text", TextType.TEXT),
+            ],
+        )
+
+    def test_split_nodes_delimiter_preserves_non_text_nodes(self):
+        old_nodes = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+            TextNode(" text", TextType.TEXT),
+        ]
+        new_nodes = split_nodes_delimiter(old_nodes, "**", TextType.BOLD)
+        self.assertEqual(new_nodes, old_nodes)
+
+    def test_split_nodes_delimiter_multiple_nodes(self):
+        old_nodes = [
+            TextNode("Hello `code` world", TextType.TEXT),
+            TextNode(" and **bold** too", TextType.TEXT),
+        ]
+        new_nodes = split_nodes_delimiter(old_nodes, "`", TextType.CODE)
+        new_nodes = split_nodes_delimiter(new_nodes, "**", TextType.BOLD)
+        self.assertEqual(
+            new_nodes,
+            [
+                TextNode("Hello ", TextType.TEXT),
+                TextNode("code", TextType.CODE),
+                TextNode(" world", TextType.TEXT),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("bold", TextType.BOLD),
+                TextNode(" too", TextType.TEXT),
+            ],
+        )
+
+    def test_split_nodes_delimiter_missing_closing_raises(self):
+        node = TextNode("This is **broken text", TextType.TEXT)
+        with self.assertRaises(Exception):
+            split_nodes_delimiter([node], "**", TextType.BOLD)
 
 
 if __name__ == "__main__":
