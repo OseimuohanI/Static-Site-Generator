@@ -7,6 +7,7 @@ from textnode import extract_markdown_links
 from textnode import split_nodes_delimiter
 from textnode import split_nodes_image
 from textnode import split_nodes_link
+from textnode import markdown_to_blocks
 from textnode import text_node_to_html_node
 from textnode import text_to_textnodes
 
@@ -308,6 +309,50 @@ class TestTextNode(unittest.TestCase):
                 TextNode(" inside code", TextType.TEXT),
             ],
             text_to_textnodes(text),
+        )
+
+    def test_markdown_to_blocks(self):
+        md = """This is **bolded** paragraph
+
+This is another paragraph with *italic* text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+        self.assertEqual(
+            markdown_to_blocks(md),
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with *italic* text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+    def test_markdown_to_blocks_strips_whitespace(self):
+        md = """
+
+   First block   
+
+Second block
+
+"""
+        self.assertEqual(
+            markdown_to_blocks(md),
+            [
+                "First block",
+                "Second block",
+            ],
+        )
+
+    def test_markdown_to_blocks_ignores_empty_blocks(self):
+        md = "First block\n\n\n\nSecond block\n\n"
+        self.assertEqual(
+            markdown_to_blocks(md),
+            [
+                "First block",
+                "Second block",
+            ],
         )
 
 
