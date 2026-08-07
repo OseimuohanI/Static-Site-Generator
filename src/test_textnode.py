@@ -10,6 +10,7 @@ from textnode import split_nodes_delimiter
 from textnode import split_nodes_image
 from textnode import split_nodes_link
 from textnode import markdown_to_blocks
+from textnode import markdown_to_html_node
 from textnode import text_node_to_html_node
 from textnode import text_to_textnodes
 
@@ -404,6 +405,57 @@ code line 2
         self.assertEqual(
             block_to_block_type("2. item 1\n3. item 2"),
             BlockType.PARAGRAPH,
+        )
+
+    def test_markdown_to_html_node_paragraphs(self):
+        md = """This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with *italic* text and `code` here
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
+        )
+
+    def test_markdown_to_html_node_codeblock(self):
+        md = """```
+This is text that _should_ remain
+the **same** even with inline stuff
+```"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
+
+    def test_markdown_to_html_node_heading(self):
+        md = """# Heading with **bold**
+"""
+        node = markdown_to_html_node(md)
+        self.assertEqual(
+            node.to_html(),
+            "<div><h1>Heading with <b>bold</b></h1></div>",
+        )
+
+    def test_markdown_to_html_node_lists_and_quote(self):
+        md = """> quote line one
+> quote line two
+
+- item one with *italic*
+- item two
+
+1. first
+2. second
+"""
+        node = markdown_to_html_node(md)
+        self.assertEqual(
+            node.to_html(),
+            "<div><blockquote>quote line one quote line two</blockquote><ul><li>item one with <i>italic</i></li><li>item two</li></ul><ol><li>first</li><li>second</li></ol></div>",
         )
 
 

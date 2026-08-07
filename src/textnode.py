@@ -2,6 +2,7 @@ from enum import Enum
 import re
 
 from leafnode import LeafNode
+from parentnode import ParentNode
 
 
 class TextType(Enum):
@@ -194,3 +195,52 @@ def block_to_block_type(block):
             return BlockType.ORDERED_LIST
 
     return BlockType.PARAGRAPH
+
+
+def text_to_children(text):
+    return [text_node_to_html_node(text_node) for text_node in text_to_textnodes(text)]
+
+
+def block_to_html_node(block):
+    block_type = block_to_block_type(block)
+
+    if block_type == BlockType.PARAGRAPH:
+        return ParentNode("p", text_to_children(block.replace("\n", " ")))
+
+    if block_type == BlockType.HEADING:
+        heading_match = re.match(r"^(#{1,6}) (.*)$", block)
+        heading_level = len(heading_match.group(1))
+        heading_text = heading_match.group(2)
+        return ParentNode(f"h{heading_level}", text_to_children(heading_text))
+
+    if block_type == BlockType.CODE:
+        code_text = block[4:-3]
+        return ParentNode("pre", [LeafNode("code", code_text)])
+
+    if block_type == BlockType.QUOTE:
+        quote_text = " ".join(
+            re.sub(r"^>\s?", "", line) for line in block.splitlines()
+        )
+        return ParentNode("blockquote", text_to_children(quote_text))
+
+    if block_type == BlockType.UNORDERED_LIST:
+        list_items = [
+            ParentNode("li", text_to_children(line[2:]))
+            for line in block.splitlines()
+        ]
+        return ParentNode("ul", list_items)
+
+    if block_type == BlockType.ORDERED_LIST:
+        list_items = [
+            ParentNode("li", text_to_children(re.sub(r"^\d+\. ", "", line, count=1)))
+            for line in block.splitlines()
+        ]
+        return ParentNode("ol", list_items)
+
+    raise Exception(f"Unsupported block type: {block_type}")
+
+
+def markdown_to_html_node(markdown):
+    blocks = markdown_to_blocks(markdown)
+    children = [block_to_html_node(block) for block in blocks]
+    return ParentNode("div", children)
