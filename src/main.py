@@ -1,19 +1,15 @@
 import os
 import shutil
+import sys
 
 from textnode import markdown_to_html_node
 
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
-PUBLIC_DIR = os.path.join(PROJECT_ROOT, "public")
+DOCS_DIR = os.path.join(PROJECT_ROOT, "docs")
 CONTENT_DIR = os.path.join(PROJECT_ROOT, "content")
 TEMPLATE_PATH = os.path.join(PROJECT_ROOT, "template.html")
-ROOT_INDEX_HTML_PATH = os.path.join(PROJECT_ROOT, "index.html")
-ROOT_INDEX_CSS_PATH = os.path.join(PROJECT_ROOT, "index.css")
-ROOT_IMAGES_DIR = os.path.join(PROJECT_ROOT, "images")
-ROOT_BLOG_DIR = os.path.join(PROJECT_ROOT, "blog")
-ROOT_CONTACT_DIR = os.path.join(PROJECT_ROOT, "contact")
 
 
 def copy_directory(source_dir, destination_dir):
@@ -56,7 +52,7 @@ def extract_title(markdown):
     raise Exception("No h1 header found in markdown")
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
     with open(from_path, "r", encoding="utf-8") as file:
@@ -69,32 +65,30 @@ def generate_page(from_path, template_path, dest_path):
     title = extract_title(markdown)
 
     page = template.replace("{{ Title }}", title).replace("{{ Content }}", html)
+    page = page.replace('href="/', f'href="{basepath}')
+    page = page.replace('src="/', f'src="{basepath}')
 
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
     with open(dest_path, "w", encoding="utf-8") as file:
         file.write(page)
 
 
-def mirror_public_site_to_root():
-    copy_directory_contents(PUBLIC_DIR, PROJECT_ROOT)
-
-
-def generate_pages_recursive(content_dir, template_path, destination_dir):
-    for entry in os.listdir(content_dir):
-        source_path = os.path.join(content_dir, entry)
-        destination_path = os.path.join(destination_dir, entry)
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
+    for entry in os.listdir(dir_path_content):
+        source_path = os.path.join(dir_path_content, entry)
+        destination_path = os.path.join(dest_dir_path, entry)
 
         if os.path.isdir(source_path):
-            generate_pages_recursive(source_path, template_path, destination_path)
+            generate_pages_recursive(source_path, template_path, destination_path, basepath)
         elif source_path.endswith(".md"):
             html_destination = destination_path[:-3] + ".html"
-            generate_page(source_path, template_path, html_destination)
+            generate_page(source_path, template_path, html_destination, basepath)
 
 
 def main():
-    copy_directory(STATIC_DIR, PUBLIC_DIR)
-    generate_pages_recursive(CONTENT_DIR, TEMPLATE_PATH, PUBLIC_DIR)
-    mirror_public_site_to_root()
+    basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+    copy_directory(STATIC_DIR, DOCS_DIR)
+    generate_pages_recursive(CONTENT_DIR, TEMPLATE_PATH, DOCS_DIR, basepath)
 
 
 if __name__ == "__main__":
